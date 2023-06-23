@@ -17,7 +17,7 @@ class Menu(object):
         pygame.draw.rect(self._screen, (0,150,150), rect2, 0)
         rect = pygame.Rect(self._window_size[0]/2 - 200, self._window_size[1]/2 - 100, 400, 200)
         pygame.draw.rect(self._screen, (150,150,150), rect, 0)
-        for key,item in self._entries_sprite_dict.iteritems():
+        for key,item in self._entries_sprite_dict.items():
             item.draw(self._screen)
         self._arrow_image_left.draw(self._screen)
         self._arrow_image_right.draw(self._screen)
@@ -42,7 +42,7 @@ class Menu(object):
         i = 0
         item_nr = 0
 
-        for key, item in self._entries.iteritems():
+        for key, item in self._entries.items():
             if not item == " ":
                 sprite = Sprite.from_text(item)
                 size=sprite.get_size()

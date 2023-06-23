@@ -193,7 +193,7 @@ class Destroyer_logic(object):
                 if rect[0] >= self.__window_size[0]:
                     torpedos_remove_list.append(t)
             elif _torpedo.get_direction() == 2:
-                if rect[1] > self.__window_size:
+                if rect[1] >= self.__window_size[1]:
                     torpedos_remove_list.append(t)
             elif _torpedo.get_direction() == 3:
                 if rect[2] <= 0:
