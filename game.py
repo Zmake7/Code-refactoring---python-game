@@ -8,28 +8,34 @@ from unit_handling import *
 from time import sleep
 import datetime
 
+#Timer类用于测量游戏周期之间的时间差，并将此差返回给需要它的其他游戏对象。
 class Timer(object):
     """This class is used as a time tracker for the game. Each cykle through the main loop the time difference is
     measure. The object is then passed into different game objects that require time deltas and their calculations are
     based on the time delta received from the Timer game instance.
     """
+    #定义三个私有属性
     def __init__(self):
         self.__old_time = None
         self.__new_time = None
         self.__delta = None
 
+    #开始计时
     def start(self):
         self.__old_time = datetime.datetime.now()
         self.__delta = 0
 
+    #更新计时
     def time(self):
         new_time = datetime.datetime.now()
         self.__delta = (new_time-self.__old_time).total_seconds()
         self.__old_time = new_time
 
+    #返回时间差
     def get_delta(self):
         return self.__delta
 
+    #重置时间
     def reset(self):
         self.__old_time = datetime.datetime.now()
         self.__delta = 0
@@ -46,12 +52,8 @@ class Game_level(object):
 
 
 class Destroyer_game(object):
-    """
-    The following dictionaries give the game level dependent variable values for game level brakes, maximum enemies
-    and enemy wait ranges. Game level breaks define how many enemies the player has to sink before going to the next
-    level. Max enemies defines the maximum number of enemies per game level. Enemy wait time ranges define the wait
-    time interval in seconds that is used when spawning the next enemy.
-    """
+
+    #类变量，每个级别内需要击败多少才能进入下一等级
     __game_level_breaks = {
         0:20,
         1:20,
@@ -65,6 +67,7 @@ class Destroyer_game(object):
         9:20
     }
 
+    #每个级别最多同时出现多少敌人
     __max_enemies = {
         0:5,
         1:5,
@@ -78,6 +81,7 @@ class Destroyer_game(object):
         9:10
     }
 
+    #敌人出现时长
     __enemy_wait_time_ranges = {
         0:(1,3),
         1:(1,3),
@@ -107,24 +111,75 @@ class Destroyer_game(object):
         """
         self.__window_size = window_size
         self.__center = (self.__window_size[0]/2, self.__window_size[1]/2)
-        self.__enemies = []
-        self.__bullets = []
-        self.__enemy_strenght = None
+        self.__enemies = []#敌人列表
+        self.__bullets = []#子弹列表
+        self.__enemy_strenght = None#敌人初始强度
         self.__font_size = font_size
-        self.__total_enemies = 0
-        self.__max_level = max(self.__game_level_breaks.keys())
-        self.__next_level_in = self.__game_level_breaks[init_game_level]
-        self.__max_enemies_ff = self.__max_enemies[init_game_level]
-        self.__wait_time_range = self.__enemy_wait_time_ranges[init_game_level]
-        self.__init_game_level = init_game_level
-        self.__font_size = font_size
+        self.__total_enemies = 0#已击败敌人数量
+        self.__max_level = max(self.__game_level_breaks.keys())#游戏中最大级别
+        self.__next_level_in = self.__game_level_breaks[init_game_level]#距离下一级还需要打败多少敌人
+        self.__max_enemies_ff = self.__max_enemies[init_game_level]#当前级别允许的最大敌人数量
+        self.__wait_time_range = self.__enemy_wait_time_ranges[init_game_level]#停留时间
+        self.__init_game_level = init_game_level#初始级别
+        #self.__font_size = font_size
         self.__screen = pygame.display.set_mode(window_size)
+
+    #等级控制
+    def handle_level_up(self,game_level, enemies, texts, max_level, max_enemies, enemy_wait_time_ranges, game_level_breaks,
+                        window_size):
+        if enemies.get_sunk_count() >= game_level_breaks[game_level.get_level()]:
+            if game_level.get_level() < max_level:
+                game_level.increase()
+                enemies.reset_sunk_count()
+                enemies.set_max_enemies(max_enemies[game_level.get_level()])
+                enemies.set_wait_time_range(enemy_wait_time_ranges[game_level.get_level()])
+                next_level_in = game_level_breaks[game_level.get_level()]
+                texts.add_text((window_size[0] / 2, window_size[1] / 2), "LEVEL UP!", font_size=50, positive=True)
+            return next_level_in
+        else:
+            return None
+
+    #键盘控制游戏事件
+    def handle_events(self, ingame_menu, timer, destroyer_options=None):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+            if event.type is pygame.KEYDOWN:
+                key = pygame.key.name(event.key)
+
+                if key == "escape":
+                    if ingame_menu.show() == 2:
+                        exit_game = True
+                    else:
+                        timer.reset()
+
+                if key == "b":
+                    destroyer_options.set_reload_time(100, 10)
+                    destroyer_options.set_power_reduction(0, 10)
+                    destroyer_options.set_power_refill(500, 10)
+                    destroyer_options.set_text_timer(10)
+
+    #键盘控制游戏角色
+    def handle_keys(self, keys, destroyer, fades, bullets, timer):
+        if keys[pygame.K_RIGHT]:
+            destroyer.turn_tower(1, 2)
+
+        if keys[pygame.K_LEFT]:
+            destroyer.turn_tower(3, 2)
+
+        if keys[pygame.K_SPACE]:
+            if destroyer.shoot():
+                fades.add_fade(destroyer.get_flash()[0], destroyer.get_flash()[1], 0.15)
+                bullet_pos = project_point(self.__center[0], self.__center[1], destroyer.get_direction(),
+                                           destroyer.get_tower_height() + 3)
+                bullets.add_bullet(Destroyer_bullet_1(timer, bullet_pos, destroyer.get_direction()))
 
     def run(self):
         #Initializing all game objects
         timer = Timer()
-        pygame.init()
-        pygame.font.init()
+        pygame.init()#初始化库，不写没法用这个库
+        pygame.font.init()#初始化字体模块
         game_level = Game_level(self.__init_game_level)
         points = Points()
         texts = Texts(timer)
@@ -160,30 +215,25 @@ class Destroyer_game(object):
 
         while not exit_game:
 
-            #Level handling
-            if enemies.get_sunk_count() >= self.__next_level_in:
-                if game_level.get_level() < self.__max_level:
-                    game_level.increase()
-                    enemies.reset_sunk_count()
-                    enemies.set_max_enemies(self.__max_enemies[game_level.get_level()])
-                    enemies.set_wait_time_range(self.__enemy_wait_time_ranges[game_level.get_level()])
-                    self.__next_level_in = self.__game_level_breaks[game_level.get_level()]
-                    texts.add_text((self.__window_size[0]/2, self.__window_size[1]/2),
-                                   "LEVEL UP!", font_size=50, positive=True)
+            #处理等级
+            next_level_in = self.handle_level_up(game_level, enemies, texts, self.__max_level, self.__max_enemies,
+                                            self.__enemy_wait_time_ranges, self.__game_level_breaks, self.__window_size)
+            if next_level_in is not None:
+                self.__next_level_in = next_level_in
 
-            destroyer.regenerate_power()
-            enemies.add_enemy()
-            enemies.move()
-            enemies.shoot()
-            torpedos.move()
-            bullets.move()
-            explosions.change_frames()
-            fades.fade()
-            texts.move()
-            crates.make_crate(timer)
-            crates.check()
-            logic.check()
-            destroyer_check = destroyer_options.check()
+            destroyer.regenerate_power()#恢复主角能量
+            enemies.add_enemy()#增加敌人
+            enemies.move()#移动敌人
+            enemies.shoot()#敌人射击
+            torpedos.move()#移动鱼雷
+            bullets.move()#移动子弹
+            explosions.change_frames()#改变爆炸效果的帧数
+            fades.fade()#淡出对象
+            texts.move()#移动文字
+            crates.make_crate(timer)#制造补给
+            crates.check()#检查补给是否被获得
+            logic.check()#检查游戏逻辑
+            destroyer_check = destroyer_options.check()#检查主角选项
             if destroyer_check is not None:
                 texts.add_text((self.__window_size[0]/2, self.__window_size[1]/2), "{}...".format(destroyer_check), font_size=18)
 
@@ -192,40 +242,14 @@ class Destroyer_game(object):
             if destroyer.get_hp() <= 0:
                 return True
 
+            #控制游戏角色
             keys = pygame.key.get_pressed()
+            self.handle_keys(keys, destroyer, fades, bullets, timer)
 
-            if keys[pygame.K_RIGHT]:
-                destroyer.turn_tower(1,2)
+            #控制游戏事件
+            self.handle_events(ingame_menu, timer)
 
-            if keys[pygame.K_LEFT]:
-                destroyer.turn_tower(3,2)
-
-            if keys[pygame.K_SPACE]:
-                if destroyer.shoot():
-                    fades.add_fade(destroyer.get_flash()[0], destroyer.get_flash()[1], 0.15)
-                    bullet_pos = project_point(self.__center[0], self.__center[1], destroyer.get_direction(),
-                                               destroyer.get_tower_height()+3)
-                    bullets.add_bullet(Destroyer_bullet_1(timer, bullet_pos, destroyer.get_direction()))
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT: sys.exit()
-
-                if event.type is pygame.KEYDOWN:
-                    key = pygame.key.name(event.key)
-
-                    if key == "escape":
-                        if ingame_menu.show() == 2:
-                            exit_game = True
-                        else:
-                            timer.reset()
-
-                    if key == "b":
-                        destroyer_options.set_reload_time(100,10)
-                        destroyer_options.set_power_reduction(0,10)
-                        destroyer_options.set_power_refill(500,10)
-                        destroyer_options.set_text_timer(10)
-
-
+            #作图
             graphics.draw()
             timer.time()
             new_time = datetime.datetime.now()
@@ -236,4 +260,4 @@ class Destroyer_game(object):
                 counter += 1
 
     def __del__(self):
-        pass
+         pass
