@@ -259,5 +259,4 @@ class Destroyer_game(object):
             else:
                 counter += 1
 
-    def __del__(self):
-         pass
+
