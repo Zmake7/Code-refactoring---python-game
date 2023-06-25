@@ -18,6 +18,7 @@
 import pygame
 import datetime
 
+# 指定不透明度后，将对象传送到窗口。参数（窗口，图像对象，图像矩形区域，不透明度）
 def blit_alpha(screen, image, rect, opacity):
 
     """
@@ -28,12 +29,13 @@ def blit_alpha(screen, image, rect, opacity):
 
     x = rect[0]
     y = rect[1]
-    temp = pygame.Surface((image.get_width(), image.get_height())).convert()
-    temp.blit(screen, (-x, -y))
-    temp.blit(image, (0, 0))
+    temp = pygame.Surface((image.get_width(), image.get_height())).convert() # 与图像大小相同的临时表面
+    temp.blit(screen, (-x, -y)) # 窗口放在临时表面上
+    temp.blit(image, (0, 0)) # 图像对象放在临时表面上
     temp.set_alpha(opacity)
-    screen.blit(temp, rect)
+    screen.blit(temp, rect) # 将临时表面会知道窗口指定区域
 
+# 淡入淡出效果
 class Fade_fx(object):
     def __init__(self, image, rect, time):
 
@@ -74,6 +76,7 @@ class Fade_fx(object):
         return self._alpha
 
 
+#管理淡入淡出效果
 class Fades(object):
     def __init__(self, timer):
 
@@ -318,6 +321,11 @@ class Destroyer_gfx(object):
         self.__background_rect = self.__background.get_rect()
         self.__background_rect.left, self.__background_rect.top = [0,0]
 
+    def get_shooting_info(self):
+        shooting_power = self.__destroyer.get_shooting_power()
+        tower_dir = self.__destroyer.get_direction()
+        return shooting_power, tower_dir
+
     def draw(self):
 
         """
@@ -337,60 +345,58 @@ class Destroyer_gfx(object):
 
         :return:
         """
-
+        # 绘制背景图片
         self.__screen.blit(self.__background, self.__background_rect)
-
+        # 绘制毁灭者
         self.__screen.blit(self.__destroyer.get_image()[0], self.__destroyer.get_image()[1])
-
+        # 绘制射击力量条
         #Drawing the shoot power bar
-        shooting_power = self.__destroyer.get_shooting_power()
-        tower_dir = self.__destroyer.get_direction()
+        shooting_power, tower_dir = self.get_shooting_info()
         if 0 <= tower_dir < 90 or 270 < tower_dir < 360:
-            self.__screen.fill((255 - shooting_power*2.55, shooting_power*2.55, 0),
-                         (self.__window_size[0]/2 - 25, self.__window_size[1]/2 + 30,
-                          shooting_power/2, 3))
-            pygame.draw.rect(self.__screen, (0, 0, 0), \
-            (self.__window_size[0]/2 - 26, self.__window_size[1]/2 + 29,
-             shooting_power/2+1, 4),1)
+            self.__screen.fill((255 - shooting_power * 2.55, shooting_power * 2.55, 0),
+                               (self.__window_size[0] / 2 - 25, self.__window_size[1] / 2 + 30,
+                                shooting_power / 2, 3))
+            pygame.draw.rect(self.__screen, (0, 0, 0),
+                             (self.__window_size[0] / 2 - 26, self.__window_size[1] / 2 + 29,
+                              shooting_power / 2 + 1, 4), 1)
         else:
-            self.__screen.fill((255 - shooting_power*2.55, shooting_power*2.55, 0),
-                               (self.__window_size[0]/2 - 25, self.__window_size[1]/2 - 30,
-                                shooting_power/2, 3))
-            pygame.draw.rect(self.__screen, (0, 0, 0), \
-                             (self.__window_size[0]/2 - 26, self.__window_size[1]/2 - 31,
-                              shooting_power/2+1, 4),1)
+            self.__screen.fill((255 - shooting_power * 2.55, shooting_power * 2.55, 0),
+                               (self.__window_size[0] / 2 - 25, self.__window_size[1] / 2 - 30,
+                                shooting_power / 2, 3))
+            pygame.draw.rect(self.__screen, (0, 0, 0),
+                             (self.__window_size[0] / 2 - 26, self.__window_size[1] / 2 - 31,
+                              shooting_power / 2 + 1, 4), 1)
 
+        # 绘制子弹
         for b in self.__bullets.get_bullets():
             self.__screen.blit(b.get_image()[0], b.get_image()[1])
             trail = b.get_trail()
             if trail is not None:
                 self.__fades.add_fade(trail.get_image(), trail.get_rect(), 0.4)
-
+        # 绘制箱子
         for c in self.__crates.get_crates():
             self.__screen.blit(c.get_image()[0], c.get_image()[1])
-
+        # 绘制淡出效果
         for f in self.__fades.get_fades():
             blit_alpha(self.__screen, f.get_image()[0], f.get_image()[1], f.get_alpha())
-
+        # 绘制塔
         self.__screen.blit(self.__destroyer.get_tower()[0], self.__destroyer.get_tower()[1])
-
+        # 绘制鱼雷
         for t in self.__torpedos.get_torpedos():
             self.__screen.blit(t.get_image()[0], t.get_image()[1])
-
+        # 绘制敌人
         for e in self.__enemies.get_enemies():
             self.__screen.blit(e.get_image()[0], e.get_image()[1])
 
-        #pygame.draw.line(self.__screen, (102,102,102), (self.__window_size[0]/2, self.__window_size[1]/2),
-        #                 (self.__destroyer.get_pipe()), 8)
-
+        # 绘制爆炸
         for e in self.__explosions.get_explosions():
             self.__screen.blit(e.get_image()[0], e.get_image()[1])
-
+        # 绘制文字
         for f in self.__texts.get_texts():
             blit_alpha(self.__screen, f.get_image()[0], f.get_image()[1], f.get_alpha())
-
+        # 绘制HUD
         self.__render_hud()
-
+        # 更新显示
         pygame.display.update()
 
     def get_screen(self):
