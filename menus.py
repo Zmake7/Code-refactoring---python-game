@@ -42,7 +42,7 @@ class Menu(object):
         self._arrow_image_size = self._arrow_image_left.get_size()
         self._option = option
 
-        self.__add_text = (kwargs["add_text"],None)
+        self.__add_text = (kwargs.get("add_text"), None)
         # 设置菜单项位置
         entry_size_y = 20
         start_y = window_size[1]/2 - len(self._entries) * (entry_size_y/2)
@@ -69,41 +69,30 @@ class Menu(object):
     def show(self):
         option = self._option
         max_option = max(self._entries.keys())
-
         exit = False
 
         self._arrow_image_left.set_rect(self._arrow_positions[option][0])
         self._arrow_image_right.set_rect(self._arrow_positions[option][1])
-
+        #定义按键和对应操作的字典
+        key_actions = {
+            "down": lambda: option + 1 if option < max_option - 1 else 0,
+            "up": lambda: option - 1 if option > 0 else max_option - 1,
+            "escape": lambda: (-1, True),
+            "return": lambda: (option, True)
+        }
         while not exit:
         #处理事件
             for event in pygame.event.get():
-                if event.type == pygame.QUIT: sys.exit()
-
+                if event.type == pygame.QUIT:
+                    sys.exit()
                 if event.type is pygame.KEYDOWN:
                     key = pygame.key.name(event.key)
                     # 处理按键事件
-                    if key == "down":
-                        if not option == max_option - 1:
-                            option += 1
-                        else:
-                            option = 0
+                    if key in key_actions:
+                        option, exit = key_actions[key]()
+                        self._arrow_image_left.set_rect(self._arrow_positions[option][0])
+                        self._arrow_image_right.set_rect(self._arrow_positions[option][1])
 
-                    if key == "up":
-                        if not option == 0:
-                            option -= 1
-                        else:
-                            option = max_option -1
-
-                    self._arrow_image_left.set_rect(self._arrow_positions[option][0])
-                    self._arrow_image_right.set_rect(self._arrow_positions[option][1])
-
-                    if key == "escape":
-                        option = -1
-                        exit = True
-
-                    if key == "return":
-                        exit = True
             # 绘制菜单
             self.paint()
 
@@ -119,4 +108,15 @@ class Ingame_menu(Menu):
 
     def __init__(self, screen, size, title, background, **kwargs):
         Menu.__init__(self,screen, size, title, background, option = 1, **kwargs)
-
+# if __name__ == "__main__":
+#     pygame.init()
+#     screen = pygame.display.set_mode((800, 600))
+#     pygame.display.set_caption("Menu Test")
+#     menu = Ingame_menu(screen, (800, 600), "In-game Menu", "background.png", arrow_positions={
+#         0: [(200, 315), (480, 315)],
+#         1: [(200, 375), (480, 375)],
+#         2: [(200, 435), (480, 435)],
+#         3: [(200, 495), (480, 495)]
+#     })
+#     menu.show()
+#     pygame.quit()
