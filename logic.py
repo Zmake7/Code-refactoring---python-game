@@ -39,6 +39,83 @@ class Points(object):
     def get_points(self):
         return self.__points
 
+
+#检查对象超出窗口的情况。
+class Out_window(object):
+    def __init__(self, bullets, enemies, torpedos, window_size, points, destroyer, explosions, texts):
+        self.__texts = texts
+        self.__explosions = explosions
+        self.__destroyer = destroyer
+        self.__points = points
+        self.__bullets = bullets
+        self.__enemies = enemies
+        self.__torpedos = torpedos
+        self.__window_size = window_size
+
+    # 检查是否有窗口外的子弹。返回要删除的子弹索引列表
+    def check_bullets(self):
+        bullet_remove_list = []
+        bullet_list = self.__bullets.get_bullets()
+
+        for b, _bullet in enumerate(bullet_list):
+            if not (self.__window_size[0] >= _bullet.get_position()[0] >= 0) or \
+                    not (self.__window_size[1] >= _bullet.get_position()[1] >= 0):
+                bullet_remove_list.append(b)
+        return bullet_remove_list
+
+    # 检查敌人是否超出游戏窗口。返回一个需要移除的敌人列表。
+    def check_enemies(self):
+        enemies_remove_list = []
+        for e, _enemy in enumerate(self.__enemies.get_enemies()):
+            rect = _enemy.get_extent()
+            # 如果敌人向上移动且超出窗口，则将其从列表中移除并减少玩家的分数。
+            if _enemy.get_direction() == 0:
+                if rect[1] <= 0:
+                    enemies_remove_list.append(e)
+                    self.__points.reduce_points(_enemy.get_params()["points"])
+            # 如果敌人向右移动且超出窗口，则将其从列表中移除并减少玩家的分数。
+            if _enemy.get_direction() == 1:
+                if rect[0] >= self.__window_size[0]:
+                    enemies_remove_list.append(e)
+                    self.__points.reduce_points(_enemy.get_params()["points"])
+            # 如果敌人向下移动且超出窗口，则将其从列表中移除并减少玩家的分数。
+            if _enemy.get_direction() == 2:
+                if rect[1] > self.__window_size:
+                    enemies_remove_list.append(e)
+                    self.__points.reduce_points(_enemy.get_params()["points"])
+            # 如果敌人向左移动且超出窗口，则将其从列表中移除并减少玩家的分数。
+            if _enemy.get_direction() == 3:
+                if rect[2] <= 0:
+                    enemies_remove_list.append(e)
+                    self.__points.reduce_points(_enemy.get_params()["points"])
+        return enemies_remove_list
+
+    # 检查鱼雷是否超出游戏窗口。返回一个需要移除的鱼雷列表。
+    def check_torpedos(self):
+        torpedos_remove_list = []
+        for t, _torpedo in enumerate(self.__torpedos.get_torpedos()):
+            rect = _torpedo.get_rect()
+            # 如果鱼雷击中了驱逐舰，则将其从列表中移除，并添加爆炸效果、减少驱逐舰的生命值和玩家的分数。
+            if _torpedo.get_image()[1].colliderect(self.__destroyer.get_image()[1]):
+                torpedos_remove_list.append(t)
+                self.__explosions.add_explosion(Explosion(_torpedo.get_position(), 20))
+                self.__texts.add_text(_torpedo.get_position(), "-{}".
+                                      format(_torpedo.get_params()["points"]), positive=False)
+                self.__destroyer.reduce_hp(_torpedo.get_damage())
+            # 如果鱼雷向上，右，下，左移动且超出窗口，则将其从列表中移除。
+            elif _torpedo.get_direction() == 0:
+                if rect[1] <= 0:
+                    torpedos_remove_list.append(t)
+            elif _torpedo.get_direction() == 1:
+                if rect[0] >= self.__window_size[0]:
+                    torpedos_remove_list.append(t)
+            elif _torpedo.get_direction() == 2:
+                if rect[1] >= self.__window_size[1]:
+                    torpedos_remove_list.append(t)
+            elif _torpedo.get_direction() == 3:
+                if rect[2] <= 0:
+                    torpedos_remove_list.append(t)
+        return torpedos_remove_list
 # 初始化游戏逻辑
 class Destroyer_logic(object):
 
@@ -57,17 +134,7 @@ class Destroyer_logic(object):
         self.__crates = crates
         self.__timer = timer
         self.__destroyer_options = destroyer_options
-
-    # 检查是否有窗口外的子弹。返回要删除的子弹索引列表
-    def __check_bullets(self):
-        bullet_remove_list = []
-        bullet_list = self.__bullets.get_bullets()
-
-        for b, _bullet in enumerate(bullet_list):
-            if not (self.__window_size[0] >= _bullet.get_position()[0] >= 0) or \
-                    not (self.__window_size[1] >= _bullet.get_position()[1] >= 0):
-                bullet_remove_list.append(b)
-        return bullet_remove_list
+        self.__collision_manager = Out_window(bullets, enemies, torpedos, window_size, points, destroyer, explosions, texts)
 
     # 检查子弹和敌人之间的碰撞以及这种情况下会发生什么。返回要删除的子弹和敌人的列表。
     def __check_bullets_enemies(self):
@@ -96,60 +163,6 @@ class Destroyer_logic(object):
                                           format(_bullet.get_damage(), positive=False))
                     self.__destroyer.reduce_hp(_bullet.get_damage())
         return bullet_remove_list, enemy_remove_list
-
-    # 检查敌人是否超出游戏窗口。返回一个需要移除的敌人列表。
-    def __check_enemies(self):
-        enemies_remove_list = []
-        for e, _enemy in enumerate(self.__enemies.get_enemies()):
-            rect = _enemy.get_extent()
-            # 如果敌人向上移动且超出窗口，则将其从列表中移除并减少玩家的分数。
-            if _enemy.get_direction() == 0:
-                if rect[1] <= 0:
-                    enemies_remove_list.append(e)
-                    self.__points.reduce_points(_enemy.get_params()["points"])
-            # 如果敌人向右移动且超出窗口，则将其从列表中移除并减少玩家的分数。
-            if _enemy.get_direction() == 1:
-                if rect[0] >= self.__window_size[0]:
-                    enemies_remove_list.append(e)
-                    self.__points.reduce_points(_enemy.get_params()["points"])
-            # 如果敌人向下移动且超出窗口，则将其从列表中移除并减少玩家的分数。
-            if _enemy.get_direction() == 2:
-                if rect[1] > self.__window_size:
-                    enemies_remove_list.append(e)
-                    self.__points.reduce_points(_enemy.get_params()["points"])
-            # 如果敌人向左移动且超出窗口，则将其从列表中移除并减少玩家的分数。
-            if _enemy.get_direction() == 3:
-                if rect[2] <= 0:
-                    enemies_remove_list.append(e)
-                    self.__points.reduce_points(_enemy.get_params()["points"])
-        return enemies_remove_list
-
-    # 检查鱼雷是否超出游戏窗口。返回一个需要移除的鱼雷列表。
-    def __check_torpedos(self):
-        torpedos_remove_list = []
-        for t, _torpedo in enumerate(self.__torpedos.get_torpedos()):
-            rect = _torpedo.get_rect()
-            # 如果鱼雷击中了驱逐舰，则将其从列表中移除，并添加爆炸效果、减少驱逐舰的生命值和玩家的分数。
-            if _torpedo.get_image()[1].colliderect(self.__destroyer.get_image()[1]):
-                torpedos_remove_list.append(t)
-                self.__explosions.add_explosion(Explosion(_torpedo.get_position(), 20))
-                self.__texts.add_text(_torpedo.get_position(), "-{}".
-                                      format(_torpedo.get_params()["points"]), positive = False)
-                self.__destroyer.reduce_hp(_torpedo.get_damage())
-            # 如果鱼雷向上，右，下，左移动且超出窗口，则将其从列表中移除。
-            elif _torpedo.get_direction() == 0:
-                if rect[1] <= 0:
-                    torpedos_remove_list.append(t)
-            elif _torpedo.get_direction() == 1:
-                if rect[0] >= self.__window_size[0]:
-                    torpedos_remove_list.append(t)
-            elif _torpedo.get_direction() == 2:
-                if rect[1] >= self.__window_size[1]:
-                    torpedos_remove_list.append(t)
-            elif _torpedo.get_direction() == 3:
-                if rect[2] <= 0:
-                    torpedos_remove_list.append(t)
-        return torpedos_remove_list
 
     # 检查子弹和鱼雷之间的碰撞，以及在这种情况下会发生什么。返回要删除的子弹和鱼雷的列表。
     def __check_bullets_torpedos(self):
@@ -240,10 +253,10 @@ class Destroyer_logic(object):
         return crates_remove_list
 
     def check(self):
-        bullet_remove_list_1 = self.__check_bullets()
+        bullet_remove_list_1 = self.__collision_manager.check_bullets()
         bullet_remove_list_2, enemy_remove_list_1 = self.__check_bullets_enemies()
-        enemy_remove_list_2 = self.__check_enemies()
-        torpedo_remove_list_1 = self.__check_torpedos()
+        enemy_remove_list_2 = self.__collision_manager.check_enemies()
+        torpedo_remove_list_1 = self.__collision_manager.check_torpedos()
         bullet_remove_list_3, torpedo_remove_list_2 = self.__check_bullets_torpedos()
         bullet_remove_list_4, crate_remove_list_1 = self.__check_bullets_crates()
         crate_remove_list_2 = self.__check_enemies_crates()
