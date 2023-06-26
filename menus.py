@@ -41,26 +41,27 @@ class Menu(object):
         self._arrow_image_right = Sprite(pygame.transform.rotate(self._arrow_image_left.get_image(), 180))
         self._arrow_image_size = self._arrow_image_left.get_size()
         self._option = option
-
         self.__add_text = (kwargs.get("add_text"), None)
-        # 设置菜单项位置
+        self.__setup_entries()
+
+    def __setup_entries(self):
         entry_size_y = 20
-        start_y = window_size[1]/2 - len(self._entries) * (entry_size_y/2)
+        start_y = self._window_size[1] / 2 - len(self._entries) * (entry_size_y / 2)
         ARROW_WIDTH = 104
         ARROW_HEIGHT = 12
         i = 0
         item_nr = 0
-
         for key, item in self._entries.items():
             if not item == " ":
                 sprite = Sprite.from_text(item)
-                size=sprite.get_size()
-                sprite.move_to(window_size[0]/2 - size[0]/2, start_y + i * entry_size_y)
-                self._entries_sprite_dict.update({item_nr:sprite})
-                self._arrow_positions.update({item_nr:[pygame.Rect(sprite.get_pos()[0] - 110, sprite.get_pos()[1] +
-                                                                  size[1]/2 - 6, ARROW_WIDTH, ARROW_HEIGHT),
-                                                       pygame.Rect(sprite.get_pos()[0] + size[0] + 6, sprite.get_pos()[1] +
-                                                                   size[1]/2 - 6, ARROW_WIDTH, ARROW_HEIGHT)]})
+                size = sprite.get_size()
+                sprite.move_to(self._window_size[0] / 2 - size[0] / 2, start_y + i * entry_size_y)
+                self._entries_sprite_dict.update({item_nr: sprite})
+                self._arrow_positions.update({item_nr: [pygame.Rect(sprite.get_pos()[0] - 110, sprite.get_pos()[1] +
+                                                                    size[1] / 2 - 6, ARROW_WIDTH, ARROW_HEIGHT),
+                                                        pygame.Rect(sprite.get_pos()[0] + size[0] + 6,
+                                                                    sprite.get_pos()[1] +
+                                                                    size[1] / 2 - 6, ARROW_WIDTH, ARROW_HEIGHT)]})
                 self._arrow_image_left.set_rect(self._arrow_positions[0][0])
                 self._arrow_image_right.set_rect(self._arrow_positions[0][1])
                 item_nr += 1
