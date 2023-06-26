@@ -1,27 +1,33 @@
 import pygame
 import sys
+import gfx
 from time import sleep
 from gfx import blit_alpha
 from sprite import Sprite
 
 
 class Menu(object):
+    # 初始化菜单
     _entries = {
-        0:"",
-        1:"",
-        2:""
+        "entry1": "",
+        "entry2": "",
+        "entry3": ""
     }
-
+    MENU_WIDTH = 400
+    MENU_HEIGHT = 200
+    # 绘制菜单背景
     def paint(self):
-        rect2 = pygame.Rect(self._window_size[0]/2 - 190, self._window_size[1]/2 - 110, 400, 200)
+        rect2 = pygame.Rect(self._window_size[0]/2 - 190, self._window_size[1]/2 - 110,self.MENU_WIDTH, self.MENU_HEIGHT)
         pygame.draw.rect(self._screen, (0,150,150), rect2, 0)
-        rect = pygame.Rect(self._window_size[0]/2 - 200, self._window_size[1]/2 - 100, 400, 200)
+        rect = pygame.Rect(self._window_size[0]/2 - 200, self._window_size[1]/2 - 100, self.MENU_WIDTH, self.MENU_HEIGHT)
         pygame.draw.rect(self._screen, (150,150,150), rect, 0)
+        # 绘制菜单项
         for key,item in self._entries_sprite_dict.items():
             item.draw(self._screen)
+        # 绘制箭头
         self._arrow_image_left.draw(self._screen)
         self._arrow_image_right.draw(self._screen)
-
+        # 更新显示
         pygame.display.update()
 
     def __init__(self, screen, window_size, title, background, option, **kwargs):
@@ -37,8 +43,11 @@ class Menu(object):
         self._option = option
 
         self.__add_text = (kwargs["add_text"],None)
+        # 设置菜单项位置
         entry_size_y = 20
         start_y = window_size[1]/2 - len(self._entries) * (entry_size_y/2)
+        ARROW_WIDTH = 104
+        ARROW_HEIGHT = 12
         i = 0
         item_nr = 0
 
@@ -49,9 +58,9 @@ class Menu(object):
                 sprite.move_to(window_size[0]/2 - size[0]/2, start_y + i * entry_size_y)
                 self._entries_sprite_dict.update({item_nr:sprite})
                 self._arrow_positions.update({item_nr:[pygame.Rect(sprite.get_pos()[0] - 110, sprite.get_pos()[1] +
-                                                                  size[1]/2 - 6, 104, 12),
+                                                                  size[1]/2 - 6, ARROW_WIDTH, ARROW_HEIGHT),
                                                        pygame.Rect(sprite.get_pos()[0] + size[0] + 6, sprite.get_pos()[1] +
-                                                                   size[1]/2 - 6, 104, 12)]})
+                                                                   size[1]/2 - 6, ARROW_WIDTH, ARROW_HEIGHT)]})
                 self._arrow_image_left.set_rect(self._arrow_positions[0][0])
                 self._arrow_image_right.set_rect(self._arrow_positions[0][1])
                 item_nr += 1
@@ -67,13 +76,13 @@ class Menu(object):
         self._arrow_image_right.set_rect(self._arrow_positions[option][1])
 
         while not exit:
-
+        #处理事件
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
 
                 if event.type is pygame.KEYDOWN:
                     key = pygame.key.name(event.key)
-
+                    # 处理按键事件
                     if key == "down":
                         if not option == max_option - 1:
                             option += 1
@@ -95,6 +104,7 @@ class Menu(object):
 
                     if key == "return":
                         exit = True
+            # 绘制菜单
             self.paint()
 
         return option
