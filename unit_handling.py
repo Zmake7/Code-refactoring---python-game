@@ -101,13 +101,19 @@ class Enemies():
             :returns: boolean
             """
 
+            # 遍历当前的敌人列表
             for e in self.__enemy_list:
+                # 获取敌人的位置信息
                 rect = e.get_extent()
+                # 如果y位置在敌人的上下40像素内，返回True
                 if rect[1] - 40 < y < rect[3] + 40:
                     return True
+            # 否则返回False
             return False
 
+        # 定义一个内部方法，用于根据船的类型、速度、起始位置和方向来创建船
         def build_my_ship(ship_type, speed, origin, direction):
+            # 根据船的类型创建不同的船
             if ship_type == 0:
                 ship = Submarine(speed, origin, direction)
             elif ship_type == 1 :
@@ -124,9 +130,13 @@ class Enemies():
             Function to randomize a ship and its params based on the ratios specified in __ship_ratios.
             """
 
+            # 随机生成船的类型
             ship_type = randrange(1,100,1)
+            # 获取船的类型数量
             ship_type_count = len(self.__ship_ratios)
+            # 根据游戏等级获取船的比例
             self.__ship_ratios = self.__ship_ratios_per_level[self.__game_level.get_level()]
+            # 根据船的比例确定船的类型
             for i in range(ship_type_count):
                 if ship_type in range(self.__ship_ratios[i][0], self.__ship_ratios[i][1]):
                     ship_type = i
@@ -142,43 +152,55 @@ class Enemies():
             elif ship_type == 3:
                 param_dict = Fregatte.get_params()
 
+            # 生成船的速度
             speed = randrange(param_dict["min_speed"], param_dict["max_speed"], 1)
 
+            # 如果船的生成方法为1，则使用固定的生成位置和方向
             if param_dict["spawn_method"] == 1:
                 spawn_origin = param_dict["fixed_spawn"][0]
-                x = spawn_origin[0] if spawn_origin[0] is not -1 else self.__window_size[2]
-                y = spawn_origin[1] if spawn_origin[1] is not -1 else self.__window_size[3]
+                x = spawn_origin[0] if spawn_origin[0] != -1 else self.__window_size[2]
+                y = spawn_origin[1] if spawn_origin[1] != -1 else self.__window_size[3]
                 direction = param_dict["fixed_spawn"][1]
                 return build_my_ship(ship_type, speed, (x,y), direction)
 
+            # 如果不是固定的生成位置和方向，需要随机生成
             good_y = False
 
+            # 循环直到找到一个好的y位置
             while not good_y:
+                # 随机生成y位置
                 y_rand = randrange(0,2,1)
                 if y_rand == 0:
                     y = randrange(self.__top_distance + 10, self.__window_size[1]/2-param_dict["min_dist"])
                 if y_rand == 1:
                     y = randrange(self.__window_size[1]/2+param_dict["min_dist"], self.__window_size[1]-10)
 
+                # 检查y位置是否好，如果好则退出循环
                 if not check_y_position(y):
                     good_y = True
 
+            # 随机生成方向
             dir_rand = randrange(0,2,1)
             direction = 1 if dir_rand == 0 else 3
+            # 根据方向确定起始位置
             if direction == 1:
                 origin = -150,y
             if direction == 3:
                 origin = self.__window_size[0], y
 
+            # 返回创建的船
             return build_my_ship(ship_type, speed, origin, direction)
 
+        # 更新总时间
         self.__total_time += self.__timer.get_delta()
+        # 如果当前没有敌人，则生成一个敌人
         if len(self.__enemy_list) == 0:
             self.__enemy_list.append(make_ship())
             self.__total_enemies += 1
             self.__next_enemy_in = randrange(self.__wait_time_range[0], self.__wait_time_range[1], 1)
             self.__total_time = 0
         else:
+            # 如果当前的敌人数量小于最大敌人数量，并且总时间大于下一个敌人的生成时间，则生成一个敌人
             if len(self.__enemy_list) < self.__max_enemies:
                 if self.__total_time > self.__next_enemy_in:
                     self.__enemy_list.append(make_ship())
@@ -196,75 +218,70 @@ class Enemies():
             e.move(self.__timer.get_delta(), self.__game_level.get_level())
 
     def shoot(self):
-
         """
         Method for making the existing ships shoot torpedos under defined cicumstances, being that they have are on
         or have passed the center of the screen, they are equipped with a torpedo (which is defined in the parameter
         dictionary in the ship class) and there are less than the allowed maximum amount of torpedos on the screen at
         this point in time. If there are more, the ship looses it's torpedo.
-
-        :returns:
+         :returns:
         """
-
         for e in self.__enemy_list:
             if e.has_torpedo() and not e.get_torpedo_shot():
-                if e.get_direction() == 1:
-                    center_point = e.get_center_point()
-                    if center_point[0] > self.__window_size[0]/2:
-                        if self.__torpedos.count() >= self.__max_torpedos:
-                            e.set_torpedo_shot()
-                        else:
-                            if center_point[1] < self.__window_size[1]/2:
-                                direction = 2
-                            else:
-                                direction = 0
-
-                            torpedo_type = e.get_params()["torpedo_type"]
-
-                            if torpedo_type == 0:
-                                self.__torpedos.add_torpedo(Torpedo_0(Torpedo_0.get_params()["min_speed"],
-                                                                      center_point,direction))
-                            if torpedo_type == 1:
-                                self.__torpedos.add_torpedo(Torpedo_1(Torpedo_1.get_params()["min_speed"],
-                                                                      center_point,direction))
-                            if torpedo_type == 2:
-                                self.__torpedos.add_torpedo(Torpedo_2(Torpedo_2.get_params()["min_speed"],
-                                                                      center_point, direction))
-
-                            e.set_torpedo_shot()
-
-                if e.get_direction() == 3:
-                    center_point = e.get_center_point()
-                    if center_point[0] < self.__window_size[0]/2:
-                        if self.__torpedos.count() >= self.__max_torpedos:
-                            e.set_torpedo_shot()
-                        else:
-                            if center_point[1] < self.__window_size[1]/2:
-                                direction = 2
-                            else:
-                                direction = 0
-
-                            torpedo_type = e.get_params()["torpedo_type"]
-                            if torpedo_type == 0:
-                                self.__torpedos.add_torpedo(Torpedo_0(Torpedo_0.get_params()["min_speed"],
-                                                                      center_point,direction))
-                            if torpedo_type == 1:
-                                self.__torpedos.add_torpedo(Torpedo_1(Torpedo_1.get_params()["min_speed"],
-                                                                      center_point,direction))
-                            e.set_torpedo_shot()
-
+                self.__shoot_torpedo(e)
             if e.shoot(self.__timer.get_delta()):
-                if e.get_gun_type() == 0:
-                    bearing = get_bearing(e.get_center_point(), (self.__window_size[0]/2, self.__window_size[1]/2))[0]
-                    self.__bullets.add_bullet(Standard_enemy_bullet(self.__timer, e.get_center_point(), bearing))
+                self.__shoot_bullet(e)
 
-                elif e.get_gun_type() == 1:
-                    try:
-                        bearing = get_bearing(e.get_center_point(), (self.__window_size[0]/2, self.__window_size[1]/2))[0]
-                        self.__bullets.add_bullet(Fregatte_bullet(self.__timer, e.get_center_point(), bearing))
-                    except:
-                        pass
+    def __shoot_torpedo(self, e):
+        if e.get_direction() == 1:
+            center_point = e.get_center_point()
+            if center_point[0] > self.__window_size[0] / 2:
+                if self.__torpedos.count() >= self.__max_torpedos:
+                    e.set_torpedo_shot()
+                else:
+                    direction = 2 if center_point[1] < self.__window_size[1] / 2 else 0
+                    torpedo_type = e.get_params()["torpedo_type"]
+                    if torpedo_type == 0:
+                        self.__torpedos.add_torpedo(Torpedo_0(Torpedo_0.get_params()["min_speed"],
+                                                              center_point, direction))
+                    elif torpedo_type == 1:
+                        self.__torpedos.add_torpedo(Torpedo_1(Torpedo_1.get_params()["min_speed"],
+                                                              center_point, direction))
+                    elif torpedo_type == 2:
+                        self.__torpedos.add_torpedo(Torpedo_2(Torpedo_2.get_params()["min_speed"],
+                                                              center_point, direction))
+                    e.set_torpedo_shot()
+        elif e.get_direction() == 3:
+            center_point = e.get_center_point()
+            if center_point[0] < self.__window_size[0] / 2:
+                if self.__torpedos.count() >= self.__max_torpedos:
+                    e.set_torpedo_shot()
+                else:
+                    direction = 2 if center_point[1] < self.__window_size[1] / 2 else 0
+                    torpedo_type = e.get_params()["torpedo_type"]
+                    if torpedo_type == 0:
+                        self.__torpedos.add_torpedo(Torpedo_0(Torpedo_0.get_params()["min_speed"],
+                                                              center_point, direction))
+                    elif torpedo_type == 1:
+                        self.__torpedos.add_torpedo(Torpedo_1(Torpedo_1.get_params()["min_speed"],
+                                                              center_point, direction))
+                    elif torpedo_type == 2:
+                        self.__torpedos.add_torpedo(Torpedo_2(Torpedo_2.get_params()["min_speed"],
+                                                              center_point, direction))
+                    e.set_torpedo_shot()
 
+    def __shoot_bullet(self, e):
+        if e.get_gun_type() == 0:
+            bearing = get_bearing(e.get_center_point(), (self.__window_size[0] / 2, self.__window_size[1] / 2))[0]
+            self.__bullets.add_bullet(Standard_enemy_bullet(self.__timer, e.get_center_point(), bearing))
+        elif e.get_gun_type() == 1:
+            try:
+                bearing = get_bearing(e.get_center_point(), (self.__window_size[0] / 2, self.__window_size[1] / 2))[0]
+                self.__bullets.add_bullet(Fregatte_bullet(self.__timer, e.get_center_point(), bearing))
+            except:
+                pass
+                # The above code extracts the logic for shooting torpedo and bullet into two separate methods,
+
+    # __shoot_torpedo() and __shoot_bullet() respectively. This makes the code more readable and easier to maintain.
 
     def get_enemies(self):
         return self.__enemy_list
