@@ -101,19 +101,19 @@ class Enemies():
             :returns: boolean
             """
 
-            # 遍历当前的敌人列表
+            # Прокрутить текущий список врагов
             for e in self.__enemy_list:
-                # 获取敌人的位置信息
+                # Получить информацию о местоположении врага
                 rect = e.get_extent()
-                # 如果y位置在敌人的上下40像素内，返回True
+                # Возвращаем True, если позиция y находится в пределах 40 пикселей от врага
                 if rect[1] - 40 < y < rect[3] + 40:
                     return True
-            # 否则返回False
+            # В противном случае вернуть False
             return False
 
-        # 定义一个内部方法，用于根据船的类型、速度、起始位置和方向来创建船
+        # Определить внутренний метод создания корабля на основе его типа, скорости, начального положения и ориентации
         def build_my_ship(ship_type, speed, origin, direction):
-            # 根据船的类型创建不同的船
+            # Создавайте разные корабли в зависимости от типа корабля
             if ship_type == 0:
                 ship = Submarine(speed, origin, direction)
             elif ship_type == 1 :
@@ -130,13 +130,13 @@ class Enemies():
             Function to randomize a ship and its params based on the ratios specified in __ship_ratios.
             """
 
-            # 随机生成船的类型
+            # случайно сгенерированный тип корабля
             ship_type = randrange(1,100,1)
-            # 获取船的类型数量
+            # Получить количество типов кораблей
             ship_type_count = len(self.__ship_ratios)
-            # 根据游戏等级获取船的比例
+            # Получить пропорцию корабля по уровню игры
             self.__ship_ratios = self.__ship_ratios_per_level[self.__game_level.get_level()]
-            # 根据船的比例确定船的类型
+            # Определяем тип корабля по пропорции количества кораблей
             for i in range(ship_type_count):
                 if ship_type in range(self.__ship_ratios[i][0], self.__ship_ratios[i][1]):
                     ship_type = i
@@ -152,10 +152,10 @@ class Enemies():
             elif ship_type == 3:
                 param_dict = Fregatte.get_params()
 
-            # 生成船的速度
+            # частота появления кораблей
             speed = randrange(param_dict["min_speed"], param_dict["max_speed"], 1)
 
-            # 如果船的生成方法为1，则使用固定的生成位置和方向
+            # Если метод возрождения корабля равен 1, используйте фиксированное положение возрождения и ориентацию.
             if param_dict["spawn_method"] == 1:
                 spawn_origin = param_dict["fixed_spawn"][0]
                 x = spawn_origin[0] if spawn_origin[0] != -1 else self.__window_size[2]
@@ -163,44 +163,46 @@ class Enemies():
                 direction = param_dict["fixed_spawn"][1]
                 return build_my_ship(ship_type, speed, (x,y), direction)
 
-            # 如果不是固定的生成位置和方向，需要随机生成
+            # Если это не фиксированная позиция и направление генерации, их нужно генерировать случайным образом
             good_y = False
 
-            # 循环直到找到一个好的y位置
+            # Цикл до тех пор, пока не будет найдена хорошая позиция y
+            # Используется для определения того, находится ли позиция y в верхней или нижней половине.
             while not good_y:
-                # 随机生成y位置
+                # Произвольно сгенерировать позицию по оси y
                 y_rand = randrange(0,2,1)
                 if y_rand == 0:
                     y = randrange(self.__top_distance + 10, self.__window_size[1]/2-param_dict["min_dist"])
                 if y_rand == 1:
                     y = randrange(self.__window_size[1]/2+param_dict["min_dist"], self.__window_size[1]-10)
 
-                # 检查y位置是否好，如果好则退出循环
+                # Проверяем правильность позиции y, если да, выходим из цикла
                 if not check_y_position(y):
                     good_y = True
 
-            # 随机生成方向
+            # Случайным образом генерировать направления
             dir_rand = randrange(0,2,1)
             direction = 1 if dir_rand == 0 else 3
-            # 根据方向确定起始位置
+            # Определить начальную позицию в соответствии с направлением
             if direction == 1:
                 origin = -150,y
             if direction == 3:
                 origin = self.__window_size[0], y
 
-            # 返回创建的船
+            # вернуть созданный корабль
             return build_my_ship(ship_type, speed, origin, direction)
 
-        # 更新总时间
+        # обновить общее время
         self.__total_time += self.__timer.get_delta()
-        # 如果当前没有敌人，则生成一个敌人
+        # Если в данный момент врага нет, создайте врага
         if len(self.__enemy_list) == 0:
             self.__enemy_list.append(make_ship())
             self.__total_enemies += 1
             self.__next_enemy_in = randrange(self.__wait_time_range[0], self.__wait_time_range[1], 1)
             self.__total_time = 0
         else:
-            # 如果当前的敌人数量小于最大敌人数量，并且总时间大于下一个敌人的生成时间，则生成一个敌人
+            # Если текущее количество врагов меньше максимального количества врагов,
+            # а общее время больше, чем время появления следующего врага, создайте врага
             if len(self.__enemy_list) < self.__max_enemies:
                 if self.__total_time > self.__next_enemy_in:
                     self.__enemy_list.append(make_ship())
